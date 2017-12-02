@@ -1,9 +1,9 @@
 """Minimal todo list manager for procrastinators"""
-import click  # for the command line interfacing
-import arrow  # for date handling (due/deadline)
-import json   # for parsing tasks.json file; contains all the tasks.
-import os     # for handling file manipulations. (saving and deleting tasks)
-import shutil # for copying the tasks.json file into appconfig directory.
+import click   # for the command line interfacing
+import arrow   # for date handling (due/deadline)
+import json    # for parsing tasks.json file; contains all the tasks.
+import os      # for handling file manipulations. (saving and deleting tasks)
+import shutil  # for copying the tasks.json file into appconfig directory.
 
 
 file_dir = click.get_app_dir('proactive')

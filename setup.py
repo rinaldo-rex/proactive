@@ -7,6 +7,7 @@ setup(
     py_modules=['proactive'],
     install_requires=[
         'Click',
+        'Arrow'
         # TODO:'colorama' for using colors in windows
     ],
     entry_points='''
