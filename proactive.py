@@ -1,8 +1,10 @@
 """Minimal todo list manager for procrastinators"""
-import click # for the command line interfacing
-import arrow # for date handling (due/deadline)
-import json  # for parsing tasks.json file; contains all the tasks.
-import os    # for handling file manipulations. (saving and deleting tasks)
+import click  # for the command line interfacing
+import arrow  # for date handling (due/deadline)
+import json   # for parsing tasks.json file; contains all the tasks.
+import os     # for handling file manipulations. (saving and deleting tasks)
+import shutil # for copying the tasks.json file into appconfig directory.
+
 
 file_dir = click.get_app_dir('proactive')
 file_path = os.path.join(file_dir, 'tasks.json')
@@ -13,14 +15,15 @@ class TaskSet:
     """The list of tasks at hand"""
 
     def __init__(self):
-        self.data = [{"id": 0}]
+        # self.data = [{"id": 0}]
         self.file = None
         if not os.path.exists(file_path):
             click.echo(f"tasks.json file doesn't exist at {file_path}, Creating...")
             os.makedirs(file_dir, exist_ok=True)
             if not os.path.exists(file_path):
-                with open(file_path, 'w+') as self.file:
-                    json.dump(self.data, self.file)
+                shutil.copy('tasks.json', file_dir)
+                with open(file_path, 'r+') as self.file:
+                    self.data = json.load(self.file)
         else:
             with open(file_path, 'r+') as self.file:
                 self.data = json.load(self.file)
