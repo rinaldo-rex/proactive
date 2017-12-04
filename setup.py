@@ -7,7 +7,8 @@ setup(
     py_modules=['proactive'],
     install_requires=[
         'Click',
-        'Arrow'
+        'Arrow',
+        'backports.functools_lru_cache'
         # TODO:'colorama' for using colors in windows
     ],
     entry_points='''

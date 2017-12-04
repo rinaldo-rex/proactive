@@ -26,7 +26,7 @@ class TaskSet:
         self.settings = None  # Settings for the app such as defaults parsed from tasks.json
         if not os.path.exists(file_path):
             click.secho("tasks.json file doesn't exist at %s, Creating..." % file_path, dim=True)
-            os.makedirs(file_dir, exist_ok=True)
+            os.makedirs(file_dir)
             if not os.path.exists(file_path):
                 shutil.copy('tasks.json', file_dir)
                 with open(file_path, 'r+') as self.file:
@@ -70,7 +70,6 @@ def cli(taskset):
     """A simple command-line todo application\n
        Intended to help(force, actually) kill procrastination.
        Or better, intended to get you to habituate acting over thinking!\n
-       ஐந்தில் வளையாதது ஐம்பதில் வளையாது
     """
 
 
