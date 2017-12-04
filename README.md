@@ -7,8 +7,9 @@ Uses Click, colorama, arrow - Python libs
 
 Hey, if you would rather try the app, clone it and go
 ```python
-$ python install .
-$ act tut
+cd proactive-master
+pip install .
+act tut
 ```
 ### Task basics
 
