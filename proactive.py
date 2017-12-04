@@ -10,17 +10,20 @@ from collections import deque  # for manipulations on tasks.json
 file_dir = click.get_app_dir('proactive')
 file_path = os.path.join(file_dir, 'tasks.json')
 first_time = True
+tuts = None
 
 
 class TaskSet:
     """The list of tasks at hand"""
     # TODO: --hard-reset option to generate a new tasks.json
     def __init__(self):
-        self.file = None
-        self.tasks = []
-        self.id_list = []
-        self.current_task = None
-        self.change_settings = False
+        self.file = None  # tasks.json file opened for parsing and dumping
+        self.tasks = []  # Sorted list of tasks
+        self.id_list = []  # list of available task ids to act on
+        self.current_task = None  # current selection of task marked for acting upon
+        self.change_settings = False  # Flag to hint settings change
+        self.tutorial = None  # A quickstart parsed from tasks.json
+        self.settings = None  # Settings for the app such as defaults parsed from tasks.json
         if not os.path.exists(file_path):
             click.secho("tasks.json file doesn't exist at %s, Creating..." % file_path, dim=True)
             os.makedirs(file_dir, exist_ok=True)
@@ -34,25 +37,22 @@ class TaskSet:
         self.sort()
 
     def sync(self):
-        # self.settings_update()
-        # print("Current data dump: %s " % self.data)
         with open(file_path, 'w') as file:
             json.dump(self.data, file)
 
     def settings_update(self):
-        # print("Calling settings: %s" % self.current_task)
         settings = self.data[1]  # 0 is tutorial, 1 is settings
-        # print("Current settings: %s" % self.data[1])
         settings['current_task'] = self.current_task
         self.data[1] = settings
-        # print("Current settings: %s" % self.data[1])
         self.sync()
 
     def sort(self):
         """Initially sort based on deadline"""
         tasks = deque(self.data)
-        tasks.popleft()  # remove the tutorial content from tasks.json
-        self.settings = tasks.popleft()  # remove the settings content from tasks.json
+        t = tasks.popleft()  # fetch the tutorial content from tasks.json
+        self.tutorial = [x for x in t.values()]
+        self.tutorial.remove(0)
+        self.settings = tasks.popleft()  # fetch the settings content from tasks.json
         self.current_task = self.settings['current_task'] if 'current_task' in self.settings else None
         for item in tasks:
             if item['id'] > 0:
@@ -81,7 +81,10 @@ def cli(taskset):
 @click.option('-l', '--length', 'length', type=float, default=3, help="How long do you have in hours?(xh/x.yh)")
 def list(taskset, length):
     """Lists available tasks to ACT on"""
-    # sorted_taskset = taskset.sort()
+    # Listing of tasks.
+    # tasks is a list of tasks who's time is rounded(ceil) for motivating.
+    # Tasks are sorted by the deadline first (on class taskset) and
+    # listed based on available time. This is so because we don't want to overwhelm the user.
     tasks = []
     if not length:
         click.secho("Assuming you have 3 hrs...", dim=True)
@@ -106,10 +109,8 @@ def list(taskset, length):
                         blink_flag = True
                 else:
                     fg_color = 'blue'
-                # if taskset.tasks.index(task) == 0:
                 click.secho(t, fg=fg_color, blink = blink_flag)
-                # else:
-                #     click.echo(t)
+
     else:
         for task in tasks:
             blink_flag = False
@@ -131,7 +132,8 @@ def list(taskset, length):
                 click.secho(t, fg=fg_color, blink=blink_flag)
             else:
                 click.secho(t, fg='blue')
-    taskset.settings_update()
+    taskset.settings_update()  # because current task changes after every listing.
+
 
 @cli.command()
 @pass_taskset
@@ -147,8 +149,6 @@ def add(taskset, name, length, due, category, tags):
     task = {}  # a task is a dictionary with at least name, length and deadline.
     id = len(taskset.data) + 2
     task['id'] = id
-    # if not name:
-    #     click.echo("Really? You wanna do nothing?")
     if name and length and due:
         task['name'] = name
         task['length'] = length
@@ -157,15 +157,15 @@ def add(taskset, name, length, due, category, tags):
         task['due'] = date1
 
     taskset.data.append(task)
-    taskset.sync()
+    taskset.sync()  # for writing back to tasks.json file
+
 
 @cli.command()
 @click.option('-i', '--id', 'id', type=int, help="Give the ID of the task you wanna do.")
 @pass_taskset
 def do(taskset, id):
     """Do 'current task' if selected, or give an ID by -i"""
-    # if not id:
-        # click.echo(id, taskset.current_task)
+
     click.echo("(Available task IDs for ref: %s )" % taskset.id_list)
     if taskset.current_task is not None:
         id = taskset.current_task['id']
@@ -181,5 +181,15 @@ def do(taskset, id):
                 item['id'] = -id
         taskset.sync()
 
-    # if not id == -2: # 0 represents tuts, 1 represents default_settings, -1 represents archived
-    #     id = taskset.current_task[]
+
+@cli.command()
+@pass_taskset
+def tut(taskset):
+    """A simple quickstart guide!"""
+    with click.progressbar(taskset.tutorial, fill_char='>', label="Tutorial progress:", color='green') as bar:
+        click.clear()
+        for item in bar:
+            click.echo()
+            click.secho(item, fg='green')
+            click.pause()
+            click.clear()
