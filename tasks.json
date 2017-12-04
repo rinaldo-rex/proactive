@@ -3,5 +3,8 @@
     "id":0,
     "t1": "Welcome, proACTive is a very simple, minimal command line application. \nThis application was born out of the need of the developer because he was a voracious procrastinator. Almost all devs are, he thought.\n\nAnd almost all nurturing devs are getting distracted very easily (Duh, we work on digital media!) \nAnd yes, let this a brief intro to get you started(Really, it's short!)",
     "t2": "This app is intended to be very minimal. \nYou add a task, and you do it.\n You get very little slack(you either do a task, or delete it, there's no in-betweens(See what I did there? Binary? No? Okay)) to procrastinate if you ever needed one. "
+  },
+  {
+    "id": 1
   }
 ]

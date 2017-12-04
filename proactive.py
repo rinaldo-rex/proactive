@@ -18,6 +18,9 @@ class TaskSet:
     def __init__(self):
         self.file = None
         self.tasks = []
+        self.id_list = []
+        self.current_task = None
+        self.change_settings = False
         if not os.path.exists(file_path):
             click.secho("tasks.json file doesn't exist at %s, Creating..." % file_path, dim=True)
             os.makedirs(file_dir, exist_ok=True)
@@ -31,15 +34,28 @@ class TaskSet:
         self.sort()
 
     def sync(self):
+        # self.settings_update()
+        # print("Current data dump: %s " % self.data)
         with open(file_path, 'w') as file:
             json.dump(self.data, file)
+
+    def settings_update(self):
+        # print("Calling settings: %s" % self.current_task)
+        settings = self.data[1]  # 0 is tutorial, 1 is settings
+        # print("Current settings: %s" % self.data[1])
+        settings['current_task'] = self.current_task
+        self.data[1] = settings
+        # print("Current settings: %s" % self.data[1])
+        self.sync()
 
     def sort(self):
         """Initially sort based on deadline"""
         tasks = deque(self.data)
         tasks.popleft()  # remove the tutorial content from tasks.json
+        tasks.popleft()  # remove the settings content from tasks.json
         for item in tasks:
             self.tasks.append(item)
+            self.id_list.append(item['id'])
         # inline sorting of the list of tasks in ascending order of due dates
         self.tasks.sort(key=lambda task: task['due'], reverse=False)
 
@@ -59,11 +75,14 @@ def cli(taskset):
 @cli.command()
 @pass_taskset
 # TODO:List tasks based on category, tags, deadlines
-@click.option('-l', '--length', 'length', type=float, help="How long do you have in hours?(xh/x.yh)")
+# The following default of 3 signifies default availability of 3 hrs
+@click.option('-l', '--length', 'length', type=float, default=3, help="How long do you have in hours?(xh/x.yh)")
 def list(taskset, length):
     """Lists available tasks to ACT on"""
     # sorted_taskset = taskset.sort()
     tasks = []
+    if not length:
+        click.echo("Assuming you have 3 hrs...", dim=True)
     if length:
         for task in taskset.tasks:
             if math.floor(float(task['length'])) <= math.ceil(length):
@@ -81,13 +100,14 @@ def list(taskset, length):
                 if arrow.get(task['due']).format('DD-MMM') <= arrow.now().format('DD-MMM'):
                     fg_color = 'red'
                     if arrow.get(task['due']).format('DD-MMM') == arrow.now().format('DD-MMM'):
+                        fg_color = 'yellow'
                         blink_flag = True
                 else:
                     fg_color = 'blue'
-                if taskset.tasks.index(task) == 0:
-                    click.secho(t, fg=fg_color, blink = blink_flag)
-                else:
-                    click.echo(t)
+                # if taskset.tasks.index(task) == 0:
+                click.secho(t, fg=fg_color, blink = blink_flag)
+                # else:
+                #     click.echo(t)
     else:
         for task in tasks:
             blink_flag = False
@@ -99,14 +119,17 @@ def list(taskset, length):
                 fg_color = 'red'
                 if arrow.get(task['due']).format('DD-MMM') == arrow.now().format('DD-MMM'):
                     blink_flag = True
+                    fg_color = 'yellow'
             else:
                 fg_color = 'green'
 
             if tasks.index(task) == 0:
-                click.secho(t, fg=fg_color, bold=True, blink=blink_flag)
+                t += " <--- Current task"
+                taskset.current_task = task
+                click.secho(t, fg=fg_color, blink=blink_flag)
             else:
                 click.secho(t, fg='blue')
-
+    taskset.settings_update()
 
 @cli.command()
 @pass_taskset
@@ -133,3 +156,20 @@ def add(taskset, name, length, due, category, tags):
 
     taskset.data.append(task)
     taskset.sync()
+
+@cli.command()
+@click.option('-i', '--id', 'id', type=int, help="Give the ID of the task you wanna do.")
+@pass_taskset
+def do(taskset, id):
+    """Do 'current task' if selected, or give an ID by -i"""
+    # if not id:
+        # click.echo(id, taskset.current_task)
+    click.echo(taskset.id_list)
+    while (id is None or taskset.current_task is None or (id not in taskset.id_list)):
+        id = click.prompt("Enter a (valid) task ID: ", type=int)
+        if id in taskset.id_list:
+            taskset.current_task = [task if task['id'] == id else None for task in taskset.tasks].pop
+    click.echo("ID: %s" % id)
+
+    # if not id == -2: # 0 represents tuts, 1 represents default_settings, -1 represents archived
+    #     id = taskset.current_task[]
