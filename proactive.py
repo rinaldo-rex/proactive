@@ -52,10 +52,12 @@ class TaskSet:
         """Initially sort based on deadline"""
         tasks = deque(self.data)
         tasks.popleft()  # remove the tutorial content from tasks.json
-        tasks.popleft()  # remove the settings content from tasks.json
+        self.settings = tasks.popleft()  # remove the settings content from tasks.json
+        self.current_task = self.settings['current_task'] if 'current_task' in self.settings else None
         for item in tasks:
-            self.tasks.append(item)
-            self.id_list.append(item['id'])
+            if item['id'] > 0:
+                self.tasks.append(item)
+                self.id_list.append(item['id'])
         # inline sorting of the list of tasks in ascending order of due dates
         self.tasks.sort(key=lambda task: task['due'], reverse=False)
 
@@ -82,7 +84,7 @@ def list(taskset, length):
     # sorted_taskset = taskset.sort()
     tasks = []
     if not length:
-        click.echo("Assuming you have 3 hrs...", dim=True)
+        click.secho("Assuming you have 3 hrs...", dim=True)
     if length:
         for task in taskset.tasks:
             if math.floor(float(task['length'])) <= math.ceil(length):
@@ -164,12 +166,20 @@ def do(taskset, id):
     """Do 'current task' if selected, or give an ID by -i"""
     # if not id:
         # click.echo(id, taskset.current_task)
-    click.echo(taskset.id_list)
+    click.echo("(Available task IDs for ref: %s )" % taskset.id_list)
+    if taskset.current_task is not None:
+        id = taskset.current_task['id']
     while (id is None or taskset.current_task is None or (id not in taskset.id_list)):
         id = click.prompt("Enter a (valid) task ID: ", type=int)
         if id in taskset.id_list:
-            taskset.current_task = [task if task['id'] == id else None for task in taskset.tasks].pop
-    click.echo("ID: %s" % id)
+            taskset.current_task = [task if task['id'] == id else None for task in taskset.tasks].pop()
+            taskset.settings_update()
+    click.echo("Do task (ID: %s)?" % id)
+    if click.confirm("If you 'do' a task, it gets 'done' by default. There's no going back. Proceed?"):
+        for item in taskset.data:
+            if item['id'] == id:
+                item['id'] = -id
+        taskset.sync()
 
     # if not id == -2: # 0 represents tuts, 1 represents default_settings, -1 represents archived
     #     id = taskset.current_task[]
